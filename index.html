@@ -1,40 +1,203 @@
-<!-- Tiny Edition: ZCPS Booking (Luxury Minimal) -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ZCPS Booking — Tiny Lux</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>ZCPS — Booking</title>
+
 <style>
-  body{margin:0;font-family:Arial;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;padding:20px}
-  h1{font-size:24px;margin-bottom:10px;color:#ffd67a}
-  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;max-width:360px;margin-top:20px}
-  .d{padding:12px 0;text-align:center;border-radius:8px;background:#1a1a1a} 
-  .p{opacity:0.2} 
-  .act:hover{background:#332600} 
-  .sel{background:#ffd67a;color:#000;font-weight:bold} 
-  #slots{margin-top:20px;max-width:360px;width:100%;display:none}
-  .slot{padding:12px;margin-bottom:8px;border-radius:10px;background:#1a1a1a;text-align:center}
-  .slot:hover{background:#332600}
-  #ok{padding:12px 16px;background:#ffd67a;color:#000;width:100%;max-width:360px;border:none;border-radius:12px;font-weight:bold;margin-top:20px;display:none}
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+  body { background:#fff; color:#000; }
+  h1,h2 { text-align:center; margin-bottom:10px; color:#000; }
+  
+  :root {
+    --gold:#D4AF37;
+    --black:#000;
+    --white:#fff;
+    --taken:#bfbfbf;
+  }
+
+  header {
+    padding:50px 20px;
+    text-align:center;
+  }
+  header p { color:var(--gold); font-size:1.1rem; margin-top:10px; }
+
+  section { padding:20px; }
+
+  .day-title {
+    font-weight:700;
+    font-size:1.3rem;
+    color:var(--gold);
+    margin:25px 0 10px;
+  }
+
+  .slots {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+    gap:10px;
+  }
+
+  .slot {
+    padding:12px;
+    border:2px solid var(--gold);
+    border-radius:15px;
+    background:var(--black);
+    color:var(--gold);
+    text-align:center;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.2s;
+  }
+  .slot:hover { transform:scale(1.05); }
+
+  .slot.taken {
+    background:var(--taken);
+    border-color:var(--taken);
+    color:#666;
+    cursor:not-allowed;
+  }
+
+  .slot.selected {
+    background:var(--gold) !important;
+    color:var(--black) !important;
+  }
+
+  #waBtn {
+    display:block;
+    margin:35px auto 0;
+    padding:15px 30px;
+    font-weight:700;
+    border-radius:40px;
+    background:var(--gold);
+    color:var(--black);
+    border:none;
+    cursor:pointer;
+    transition:0.3s;
+  }
+  #waBtn:disabled {
+    background:#ddd;
+    color:#999;
+    cursor:not-allowed;
+  }
+  #waBtn:hover:not(:disabled) {
+    background:var(--white);
+    color:var(--gold);
+    border:2px solid var(--gold);
+  }
 </style>
 </head>
+
 <body>
-<h1>ZCPS Booking</h1>
-<div id="calendar" class="cal"></div>
-<div id="slots"></div>
-<button id="ok">Valider</button>
+
+<header>
+  <h1>ZCPS by Lola</h1>
+  <p>Réservation confidentielle, directement sur WhatsApp.</p>
+</header>
+
+<section>
+  <h2>Choisis ton créneau</h2>
+  <div id="calendar"></div>
+  <button id="waBtn" disabled>Réserver sur WhatsApp</button>
+</section>
+
+
 <script>
-const cal=document.getElementById('calendar');
-const slotsBox=document.getElementById('slots');
-const ok=document.getElementById('ok');
-let sDay=null,sSlot=null;
-const now=new Date();
-let y=now.getFullYear(),m=now.getMonth();
+/* CONFIG */
+const SLOT_DURATION = 25;   // minutes
+const BUFFER = 40;          // minutes
+const DAYS_RANGE = 3;       // J+0 → J+2
+const PHONE = "33605656753";
 
-render();
+/* UTILS */
+function addMinutes(date, mins){ return new Date(date.getTime() + mins*60000); }
 
-function render(){cal.innerHTML="";
+/* CALCUL DES CRÉNEAUX */
+function generateDaySlots(day){
+  const slots = [];
+  let current = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0,0,0);
+  const end = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23,59,59);
+
+  while(current < end){
+    const endSlot = addMinutes(current, SLOT_DURATION);
+    const nextStart = addMinutes(endSlot, BUFFER);
+    const label = current.toTimeString().slice(0,5);
+
+    slots.push({
+      start: new Date(current),
+      label
+    });
+
+    current = nextStart;
+  }
+  return slots;
+}
+
+/* RENDER */
+const calendar = document.getElementById("calendar");
+const now = new Date();
+let selectedSlot = null;
+
+for(let i=0;i<DAYS_RANGE;i++){
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate()+i, 0,0,0);
+  const slots = generateDaySlots(day);
+
+  const dayBlock = document.createElement("div");
+
+  const title = document.createElement("div");
+  title.className = "day-title";
+  title.innerText = day.toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long"});
+  dayBlock.appendChild(title);
+
+  const slotsContainer = document.createElement("div");
+  slotsContainer.className = "slots";
+
+  slots.forEach(s=>{
+    const div = document.createElement("div");
+    div.className = "slot";
+    div.innerText = s.label;
+
+    // Griser si créneau passé
+    if(s.start < now){
+      div.classList.add("taken");
+    }
+
+    div.addEventListener("click", ()=>{
+      if(div.classList.contains("taken")) return;
+
+      // reset old selection
+      document.querySelectorAll(".slot.selected").forEach(el=>el.classList.remove("selected"));
+
+      div.classList.add("selected");
+      selectedSlot = {
+        date: day,
+        time: s.label
+      };
+      document.getElementById("waBtn").disabled = false;
+    });
+
+    slotsContainer.appendChild(div);
+  });
+
+  dayBlock.appendChild(slotsContainer);
+  calendar.appendChild(dayBlock);
+}
+
+/* WHATSAPP */
+document.getElementById("waBtn").addEventListener("click", ()=>{
+  if(!selectedSlot) return;
+
+  const {date, time} = selectedSlot;
+  const readable = date.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+  const msg = `Je réserve mon moment Ze CoffeePornShop le ${readable} à ${time}`;
+  const url = `https://wa.me/${PHONE}?text=${encodeURIComponent(msg)}`;
+
+  window.open(url, "_blank");
+});
+</script>
+
+</body>
+</html>function render(){cal.innerHTML="";
  let first=new Date(y,m,1).getDay();first=(first+6)%7;
  let days=new Date(y,m+1,0).getDate();
  for(let i=0;i<first;i++) addDay("",true);
