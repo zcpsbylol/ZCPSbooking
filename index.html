@@ -427,6 +427,399 @@ async function loadRemoteBooked(retry = false) {
 
 function saveLocal(){ try{ localStorage.setItem(LSKEY, JSON.stringify(localBooked)); }catch(e){ console.warn(e);} }
 
+/* ==============  .wrap{max-width:540px;margin:18px auto;padding:18px;}
+  header{display:flex;gap:14px;align-items:center;padding:14px;border-radius:14px;margin-bottom:12px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+  .logo{width:72px;height:72px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,rgba(208,176,138,0.09),rgba(201,168,111,0.03));display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.02)}
+  .logo img{width:100%;height:100%;object-fit:cover;display:block}
+  .hdr-text{display:flex;flex-direction:column}
+  .brand{font-family:"Playfair Display",serif;font-size:20px;color:var(--gold);line-height:1}
+  .sub{font-size:13px;color:var(--muted);margin-top:3px;text-transform:lowercase}
+
+  .lead{font-size:13px;color:var(--muted);margin:12px 0 8px}
+
+  /* Legend */
+  .legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+  .legend-item{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+  .legend-dot{width:12px;height:12px;border-radius:3px;border:1px solid rgba(255,255,255,0.06)}
+  .legend-dot.available{background:linear-gradient(90deg,var(--gold),var(--accent))}
+  .legend-dot.booked{background:var(--error)}
+  .legend-dot.buffer{background:var(--buffer)}
+  .legend-dot.selected{background:linear-gradient(90deg,rgba(199,154,96,0.9),rgba(208,176,138,0.9));border:none}
+
+  /* Calendar */
+  .calendar-container{margin:0 0 10px;display:flex;flex-direction:column;gap:10px}
+  .calendar-card{background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.02);box-shadow:0 12px 40px rgba(0,0,0,0.6)}
+  .calendar-header{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+  .month-label{font-size:15px;font-weight:700;color:var(--gold);text-transform:capitalize}
+  .nav-btn{width:36px;height:36px;border:none;background:var(--glass);border-radius:50%;color:var(--muted);font-size:18px;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center}
+  .nav-btn[disabled]{opacity:.36;cursor:not-allowed}
+  .nav-btn:hover:not([disabled]){background:linear-gradient(90deg,var(--gold),var(--accent));color:#07101a;transform:translateY(-2px)}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:100%;border-radius:10px;padding:8px}
+  .weekday-header{padding:6px 4px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.6px}
+  .cal-day{position:relative;padding:10px 6px;text-align:center;border-radius:10px;cursor:pointer;transition:all .18s;font-size:14px;font-weight:600;background:linear-gradient(180deg,transparent,transparent);outline:none}
+  .cal-day.outside{opacity:0.25;pointer-events:none;background:transparent}
+  .cal-day.past{opacity:0.35;pointer-events:none;background:transparent}
+  .cal-day.today{box-shadow:0 6px 18px rgba(37,211,102,0.08);border:2px solid rgba(37,211,102,0.12)}
+  .cal-day.active{box-shadow:0 16px 40px rgba(199,154,96,0.12);border:2px solid rgba(199,154,96,0.18);background:linear-gradient(135deg, rgba(208,176,138,0.06), rgba(199,154,96,0.03));transform:scale(1.03)}
+  .cal-day:hover:not(.past):not(.outside){background:linear-gradient(90deg,var(--gold),var(--accent));color:#07101a;transform:translateY(-4px);}
+  .cal-day .date{font-size:16px;line-height:1}
+  .cal-day:focus{box-shadow:0 0 0 var(--focus) rgba(215,176,120,0.14);border-radius:10px}
+
+  .multi-calendar{display:flex;gap:12px;overflow-x:auto;padding:8px 0}
+
+  .planning{padding:12px 6px 160px;min-height:260px;overflow-y:auto;position:relative}
+  .loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:3px solid var(--glass);border-top:3px solid var(--accent);border-radius:50%;width:44px;height:44px;animation:spin 1s linear infinite;display:none}
+  @keyframes spin{0%{transform:translate(-50%,-50%) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
+  .hour{font-size:13px;color:var(--muted);margin:12px 0 8px}
+  .slot{padding:12px;border-radius:12px;margin-bottom:10px;text-align:center;font-weight:900;cursor:pointer;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);transition:transform .12s,box-shadow .12s,opacity .12s;position:relative;overflow:hidden;min-width:88px}
+  .slot::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:var(--buffer);opacity:0;transition:opacity .2s}
+  .slot.available:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,0.6)}
+  .slot.booked{opacity:0.45;cursor:not-allowed;border-color:var(--error);background:linear-gradient(180deg,rgba(239,68,68,0.06),transparent)}
+  .slot.buffered::after{opacity:0.36}
+  .slot.selected{background:linear-gradient(135deg, rgba(208,176,138,0.12), rgba(199,154,96,0.06));color:#07101a;border-color:transparent;transform:scale(1.02);box-shadow:0 18px 50px rgba(199,154,96,0.12)}
+  .slot:focus{outline:none;box-shadow:0 0 0 var(--focus) rgba(199,154,96,0.14)}
+
+  .panel{position:fixed;left:12px;right:12px;bottom:12px;padding:16px;background:linear-gradient(180deg,rgba(7,10,20,0.6),rgba(7,10,20,0.92));backdrop-filter:blur(6px);border-radius:14px;border-top:1px solid rgba(255,255,255,0.03);transition:padding-bottom .3s,transform .22s;z-index:50}
+  .panel.hidden{transform:translateY(110%)}
+  .panel-inner{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:12px;padding:0 10px}
+  .sel-info{font-size:14px;color:var(--muted);text-align:center}
+  .time-row{display:flex;gap:10px;align-items:center;justify-content:center}
+  .time-display{min-width:140px;padding:12px;border-radius:12px;background:var(--glass);text-align:center;font-weight:900;color:var(--white);letter-spacing:0.6px}
+  .adj-btn{width:46px;height:46px;border-radius:12px;border:none;background:var(--gold);color:#07101a;font-weight:900;font-size:18px;cursor:pointer}
+  .book-btn{background:linear-gradient(180deg,var(--gold),var(--accent));border:none;padding:14px;border-radius:12px;font-weight:900;font-size:16px;color:#07101a;cursor:pointer}
+  .book-btn:disabled{opacity:0.6;cursor:not-allowed}
+
+  .toast{position:fixed;top:20px;right:20px;padding:12px 16px;border-radius:10px;background:var(--success);color:#07101a;font-weight:700;transform:translateX(120%);transition:transform .3s;z-index:1000}
+  .toast.error{background:var(--error);color:var(--white)}
+  .toast.show{transform:translateX(0)}
+
+  .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1001;justify-content:center;align-items:center}
+  .modal.show{display:flex}
+  .modal-content{background:var(--card);padding:22px;border-radius:14px;max-width:360px;text-align:center;animation:fadeIn .16s}
+  @keyframes fadeIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
+
+  .meta{font-size:12px;color:var(--muted);text-align:center}
+  .admin{display:flex;gap:8px;justify-content:center;margin-top:6px}
+  .admin button{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer}
+
+  @media (max-width:520px){
+    .wrap{padding:12px}
+    .logo{width:64px;height:64px}
+    .cal-day{padding:8px 4px;font-size:13px}
+    .time-display{min-width:120px}
+    .planning{padding-bottom:220px}
+    .slot{padding:10px}
+  }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  /* Pulse animation for selection (subtle) */
+  .slot.selected::before{
+    content: '';
+    position:absolute;
+    inset:0;
+    border-radius:12px;
+    box-shadow:0 0 0 0 rgba(199,154,96,0.16);
+    animation: pulse 900ms ease-out;
+    pointer-events:none;
+  }
+  @keyframes pulse {
+    0% { box-shadow:0 0 0 0 rgba(199,154,96,0.18); }
+    100% { box-shadow:0 0 0 12px rgba(199,154,96,0); }
+  }
+  /* focus-visible (keyboard) */
+  :focus-visible { outline: none; box-shadow: 0 0 0 var(--focus) rgba(215,176,120,0.18); border-radius:8px; }
+</style>
+</head>
+<body>
+  <div class="wrap" role="main" aria-label="Réservation ZCPS by Lola">
+    <header>
+      <div class="logo"><img src="logo.png" alt="ZCPS logo" loading="lazy" /></div>
+      <div class="hdr-text">
+        <div class="brand">ZCPS — CoffeePornShop</div>
+        <div class="sub">réservation instantanée • confidentiel • WhatsApp only</div>
+      </div>
+    </header>
+
+    <div class="lead">Durée 25 min · buffer configurable · réservation ≥ 2h · 24/7</div>
+
+    <div class="legend" aria-hidden="false" aria-label="Légende des états">
+      <div class="legend-item"><span class="legend-dot available" aria-hidden="true"></span> Disponible</div>
+      <div class="legend-item"><span class="legend-dot booked" aria-hidden="true"></span> Réservé</div>
+      <div class="legend-item"><span class="legend-dot buffer" aria-hidden="true"></span> Buffer</div>
+      <div class="legend-item"><span class="legend-dot selected" aria-hidden="true"></span> Sélectionné</div>
+    </div>
+
+    <!-- Calendar container -->
+    <div id="calendarContainer" class="calendar-container" aria-label="Calendrier de sélection des jours"></div>
+
+    <main id="planning" class="planning" aria-live="polite" tabindex="0">
+      <div class="loading" id="loadingSpinner" aria-hidden="true"></div>
+    </main>
+
+    <div class="panel" id="panel" aria-hidden="false">
+      <div class="panel-inner" role="region" aria-label="Panneau de réservation">
+        <div id="selInfo" class="sel-info" aria-live="polite">Aucun créneau sélectionné</div>
+
+        <div id="adjuster" class="time-row" style="display:none">
+          <button id="minus" class="adj-btn" aria-label="moins">−</button>
+          <div id="timeDisplay" class="time-display" aria-live="polite">--:--</div>
+          <button id="plus" class="adj-btn" aria-label="plus">+</button>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;justify-content:center">
+          <div style="font-size:13px;color:var(--muted)">Durée totale :</div>
+          <div id="totalDuration" style="font-weight:900;color:var(--gold)">--</div>
+        </div>
+
+        <button id="bookBtn" class="book-btn" disabled aria-disabled="true">Valider la réservation</button>
+
+        <div class="meta">Les réservations sont synchronisées si <code>booked.json</code> existe (optionnel).</div>
+
+        <div class="admin" id="adminArea" style="display:none">
+          <button id="exportBtn" title="Exporter les réservations locales">Export bookings</button>
+          <button id="reloadBtn" title="Charger booked.json depuis le repo">Reload remote bookings</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirmModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-content" role="document">
+        <h3>Confirmer la réservation ?</h3>
+        <p id="modalDetails"></p>
+        <div style="display:flex;gap:12px;margin-top:16px">
+          <button id="confirmYes" class="book-btn" style="flex:1">Oui, réserver</button>
+          <button id="confirmNo" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-weight:900">Annuler</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+<script>
+/* =======================
+   CONFIG
+   ======================= */
+const CONFIG = {
+  PHONE: '33605656753',
+  DAYS_COUNT: 14,
+  DISPLAYSTEPMIN: 30,
+  SLOTDURATIONMIN: 25,
+  BUFFER_MIN: 30,
+  INCREMENT_MIN: 5,
+  MINADVANCEHOURS: 2,
+  PLANNINGSTARTHOUR: 8,
+  PLANNINGENDHOUR: 22,
+  MAXSLOTSPERDAY: 10,
+  CALENDAR_MONTHS: 1,
+  WEEK_START: 1,
+  REMOTEBOOKEDPATH: './booked.json'
+};
+
+/* =======================
+   STATE
+   ======================= */
+let days = [];
+let currentDayIndex = 0;
+let currentMonthIndex = 0;
+let remoteBooked = [];
+let localBooked = [];
+const LSKEY = 'zcpslocalbookingsv1';
+try { localBooked = JSON.parse(localStorage.getItem(LSKEY) || '[]') } catch(e){ localBooked = [] }
+let selected = null;
+let isLoading = false;
+const isAdmin = new URLSearchParams(location.search).get('admin') === '1';
+
+/* =======================
+   HELPERS
+   ======================= */
+const pad = n => String(n).padStart(2,'0');
+const addMinutes = (d, m) => new Date(d.getTime() + m * 60000);
+const isoDateKey = d => new Date(d).toISOString().split('T')[0];
+function now(){ return new Date(); }
+function snapToMinutes(d, step = CONFIG.INCREMENT_MIN) {
+  const copy = new Date(d);
+  const mins = copy.getMinutes();
+  copy.setMinutes(Math.round(mins / step) * step);
+  copy.setSeconds(0,0);
+  return copy;
+}
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${isError ? 'error' : ''} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+function setLoading(show) {
+  isLoading = show;
+  const spinner = document.getElementById('loadingSpinner');
+  if (!spinner) return;
+  spinner.style.display = show ? 'block' : 'none';
+  document.getElementById('planning').style.opacity = show ? '0.5' : '1';
+}
+
+/* Debounce util */
+function debounce(fn, wait=150){
+  let t;
+  return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
+}
+
+/* =======================
+   Calendar helpers
+   ======================= */
+function getMonthName(m) { return ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'][m]; }
+function getWeekDayName(d) { return ['Di','Lu','Ma','Me','Je','Ve','Sa'][d]; }
+function getDaysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+function getFirstDayOfMonth(y,m){ const d = new Date(y,m,1); return (d.getDay() + 6 - CONFIG.WEEK_START + 7) % 7; }
+
+/* =======================
+   Render calendar
+   ======================= */
+const debouncedRenderCalendar = debounce(renderCalendar, 120);
+
+function renderCalendar(monthIdx = currentMonthIndex) {
+  const container = document.getElementById('calendarContainer');
+  container.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'calendar-card';
+  container.appendChild(card);
+
+  const single = renderSingleMonth(monthIdx);
+  card.appendChild(single);
+
+  // update today and active states
+  const today = now();
+  document.querySelectorAll('.cal-day').forEach(cell => {
+    if(!cell.dataset.year) return;
+    const cellDate = new Date(cell.dataset.year, cell.dataset.month, cell.dataset.day);
+    cell.classList.toggle('today', isoDateKey(cellDate) === isoDateKey(today));
+    cell.classList.toggle('active', selected && isoDateKey(cellDate) === isoDateKey(selected.start));
+  });
+}
+
+function renderSingleMonth(monthIdx) {
+  const baseDate = new Date(now().getFullYear(), now().getMonth() + monthIdx, 1);
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+
+  const cal = document.createElement('div');
+  cal.className = 'calendar';
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'calendar-header';
+  hdr.innerHTML = `
+    <button id="prevMonth" class="nav-btn" aria-label="Mois précédent">‹</button>
+    <div class="month-label">${getMonthName(month)} ${year}</div>
+    <button id="nextMonth" class="nav-btn" aria-label="Mois suivant">›</button>
+  `;
+  cal.appendChild(hdr);
+
+  // Grid
+  const grid = document.createElement('div');
+  grid.className = 'calendar-grid';
+  [0,1,2,3,4,5,6].forEach(wd => {
+    const th = document.createElement('div');
+    th.className = 'weekday-header';
+    th.textContent = getWeekDayName(wd);
+    grid.appendChild(th);
+  });
+
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day outside';
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayDate = new Date(year, month, d);
+    const isPast = dayDate < new Date(new Date().setHours(0,0,0,0));
+    const dayIdx = days.findIndex(dd => isoDateKey(dd) === isoDateKey(dayDate));
+    const cell = document.createElement('div');
+    cell.className = `cal-day ${isPast ? 'past' : ''}`;
+    cell.dataset.year = year;
+    cell.dataset.month = month;
+    cell.dataset.day = d;
+    cell.tabIndex = isPast ? -1 : 0;
+    cell.setAttribute('role', isPast ? 'presentation' : 'button');
+    cell.setAttribute('aria-label', isPast ? '' : `Sélectionner le ${d} ${getMonthName(month)}`);
+    cell.innerHTML = `<div class="date">${d}</div>`;
+    if (dayIdx !== -1 && !isPast) {
+      cell.addEventListener('click', () => switchDay(dayIdx));
+      cell.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') switchDay(dayIdx);
+      });
+    }
+    grid.appendChild(cell);
+  }
+
+  while (grid.children.length % 7 !== 0) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day outside';
+    grid.appendChild(empty);
+  }
+
+  cal.appendChild(grid);
+
+  // Nav handlers
+  const prevBtn = hdr.querySelector('#prevMonth');
+  const nextBtn = hdr.querySelector('#nextMonth');
+
+  prevBtn.addEventListener('click', () => {
+    if (currentMonthIndex > 0) { currentMonthIndex--; debouncedRenderCalendar(); }
+  });
+  nextBtn.addEventListener('click', () => { currentMonthIndex++; debouncedRenderCalendar(); });
+
+  // disable prev if at month 0
+  prevBtn.disabled = currentMonthIndex <= 0;
+
+  return cal;
+}
+
+/* =======================
+   Days generation
+   ======================= */
+function genDays(){
+  days = [];
+  const base = new Date();
+  base.setHours(0,0,0,0);
+  for(let i=0;i<CONFIG.DAYS_COUNT;i++){
+    const d = new Date(base);
+    d.setDate(base.getDate()+i);
+    days.push(d);
+  }
+}
+
+/* =======================
+   Remote booked
+   ======================= */
+async function loadRemoteBooked(retry = false) {
+  setLoading(true);
+  try {
+    const res = await fetch(CONFIG.REMOTEBOOKEDPATH + '?_=' + Date.now());
+    if (!res.ok) throw new Error('Fetch failed');
+    const data = await res.json();
+    let arr = Array.isArray(data) ? data : [];
+    if (arr.length && typeof arr[0] === 'string') {
+      remoteBooked = arr.map(s => ({start: s}));
+    } else {
+      remoteBooked = arr.map(o => (typeof o === 'string' ? {start:o} : o));
+    }
+    showToast('Bookings remote chargés');
+  } catch (e) {
+    console.warn('loadRemoteBooked fail', e);
+    remoteBooked = [];
+    if (retry) showToast('Échec chargement remote', true);
+  } finally {
+    setLoading(false);
+    renderPlanning(currentDayIndex);
+  }
+}
+
+function saveLocal(){ try{ localStorage.setItem(LSKEY, JSON.stringify(localBooked)); }catch(e){ console.warn(e);} }
+
 /* ==============  .brand{font-family:"Playfair Display",serif;font-size:18px;color:var(--gold);line-height:1}
   .sub{font-size:13px;color:var(--muted);margin-top:3px;text-transform:lowercase}
 
