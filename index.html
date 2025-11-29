@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zaps by Lola - Réservation</title>
+    <meta name="theme-color" content="#0a0e27">
+    <title>ZCPS© by Lola - Réservation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,29 +16,622 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(180deg, #0a0e27 0%, #1a1042 50%, #0a0e27 100%);
-            color: white;
-            overflow-x: hidden;
-            touch-action: pan-y;
+        :root {
+            --gradient-primary: linear-gradient(135deg, #FF6B35 0%, #FF1B8D 50%, #00D4FF 100%);
+            --bg-dark: #0a0e27;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --shadow-glow: 0 8px 32px rgba(255, 107, 53, 0.3);
         }
 
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255, 107, 53, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(0, 212, 255, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* HEADER */
         .header {
-            padding: 30px 20px;
-            background: linear-gradient(135deg, rgba(255,165,0,0.15) 0%, rgba(255,105,180,0.15) 50%, rgba(64,224,208,0.15) 100%);
-            border-bottom: 3px solid transparent;
-            border-image: linear-gradient(90deg, #ffa500, #ff69b4, #40e0d0) 1;
-            text-align: center;
+            padding: 40px 24px 32px;
+            background: rgba(10, 14, 39, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
             position: relative;
             overflow: hidden;
         }
 
-        .header::before {
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            opacity: 0.6;
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .brand h1 {
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            background: var(--gradient-primary);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientFlow 6s ease infinite;
+            margin-bottom: 4px;
+        }
+
+        .brand .copyright {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+        }
+
+        @keyframes gradientFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .tagline {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* LEGEND */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            padding: 20px 24px;
+            background: rgba(10, 14, 39, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .legend-dot.available {
+            background: var(--gradient-primary);
+            box-shadow: 0 0 12px rgba(255, 107, 53, 0.4);
+        }
+
+        .legend-dot.booked {
+            background: rgba(239, 68, 68, 0.3);
+            border: 2px solid rgba(239, 68, 68, 0.6);
+        }
+
+        /* DAYS NAVIGATION */
+        .days-nav {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            background: rgba(10, 14, 39, 0.6);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-subtle);
+            gap: 1px;
+        }
+
+        .days-nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .day-tab {
+            flex: 0 0 33.333%;
+            padding: 20px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            scroll-snap-align: start;
+            background: var(--bg-card);
+            position: relative;
+        }
+
+        .day-tab::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .day-tab.active {
+            background: rgba(255, 107, 53, 0.08);
+        }
+
+        .day-tab.active::after {
+            transform: scaleX(1);
+        }
+
+        .day-name {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .day-date {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* PLANNING */
+        .planning {
+            padding: 24px 16px 120px;
+            height: calc(100vh - 300px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .planning::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .planning::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .planning::-webkit-scrollbar-thumb {
+            background: rgba(255, 107, 53, 0.3);
+            border-radius: 2px;
+        }
+
+        .hour-block {
+            margin-bottom: 32px;
+        }
+
+        .hour-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255, 107, 53, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+            padding-left: 4px;
+        }
+
+        .slots-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .time-slot {
+            padding: 20px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-subtle);
+            border-radius: 16px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .time-slot::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .time-slot .time-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .time-slot.available:active {
+            transform: scale(0.96);
+        }
+
+        .time-slot.available:hover::before {
+            opacity: 0.1;
+        }
+
+        .time-slot.booked {
+            background: rgba(239, 68, 68, 0.05);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+        }
+
+        .time-slot.booked::after {
+            content: '✕';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: rgba(239, 68, 68, 0.5);
+        }
+
+        .time-slot.selected {
+            background: var(--gradient-primary);
+            border-color: transparent;
+            transform: scale(1.02);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .time-slot.selected::before {
+            opacity: 1;
+        }
+
+        .time-slot.selected::after {
+            content: '✓';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: white;
+            animation: checkmark 0.3s ease;
+        }
+
+        @keyframes checkmark {
+            0% { transform: translateY(-50%) scale(0); }
+            50% { transform: translateY(-50%) scale(1.2); }
+            100% { transform: translateY(-50%) scale(1); }
+        }
+
+        /* VALIDATION PANEL */
+        .validation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-subtle);
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+        }
+
+        .validation.show {
+            transform: translateY(0);
+        }
+
+        .validation::before {
             content: '';
             position: absolute;
             top: 0;
-            left: -100%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+        }
+
+        .validation-content {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .validation-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .validation-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .validation-date {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .validation-time {
+            font-size: 28px;
+            font-weight: 900;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .btn-validate {
+            width: 100%;
+            padding: 18px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 900;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: var(--shadow-glow);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-validate::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-validate:hover::before {
+            opacity: 1;
+        }
+
+        .btn-validate:active {
+            transform: scale(0.97);
+        }
+
+        /* FOOTER */
+        .footer {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="brand">
+                <h1>ZCPS©</h1>
+                <div class="copyright">by Lola</div>
+            </div>
+            <p class="tagline">Réservez votre créneau en quelques clics</p>
+        </header>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot available"></div>
+                <span>Disponible</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot booked"></div>
+                <span>Réservé</span>
+            </div>
+        </div>
+
+        <nav class="days-nav" id="daysNav"></nav>
+        
+        <main class="planning" id="planning"></main>
+
+        <aside class="validation" id="validation">
+            <div class="validation-content">
+                <div class="validation-header">
+                    <div class="validation-label">Votre réservation</div>
+                    <div class="validation-date" id="valDate"></div>
+                    <div class="validation-time" id="valTime"></div>
+                </div>
+                <button class="btn-validate" onclick="confirmBooking()">
+                    Confirmer sur WhatsApp
+                </button>
+            </div>
+        </aside>
+
+        <footer class="footer">ZCPS© by Lola</footer>
+    </div>
+
+    <script>
+        const WHATSAPP = '33605656753';
+        let selectedSlot = null;
+        let currentDay = 0;
+
+        const bookedSlots = {
+            '2025-11-29': ['14:30', '10:00'],
+            '2025-11-30': ['16:15']
+        };
+
+        function getDays() {
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() + i);
+                days.push(d);
+            }
+            return days;
+        }
+
+        function formatDayName(date, index) {
+            if (index === 0) return 'Aujourd\'hui';
+            if (index === 1) return 'Demain';
+            const day = date.toLocaleDateString('fr-FR', { weekday: 'long' });
+            return day.charAt(0).toUpperCase() + day.slice(1);
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        }
+
+        function getDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function isBooked(date, time) {
+            const key = getDateKey(date);
+            return bookedSlots[key]?.includes(time) || false;
+        }
+
+        function generateTimeSlots(date, isToday) {
+            const now = new Date();
+            const startHour = isToday ? now.getHours() : 0;
+            const hours = {};
+
+            for (let h = startHour; h < 24; h++) {
+                hours[h] = [];
+                for (let m = 0; m < 60; m += 15) {
+                    const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    const booked = isBooked(date, time);
+                    hours[h].push({ time, booked, date });
+                }
+            }
+            return hours;
+        }
+
+        function renderDays() {
+            const days = getDays();
+            const nav = document.getElementById('daysNav');
+            nav.innerHTML = days.map((day, i) => `
+                <div class="day-tab ${i === 0 ? 'active' : ''}" onclick="switchDay(${i})">
+                    <div class="day-name">${formatDayName(day, i)}</div>
+                    <div class="day-date">${formatDate(day)}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderPlanning(dayIndex) {
+            const days = getDays();
+            const day = days[dayIndex];
+            const hourSlots = generateTimeSlots(day, dayIndex === 0);
+            const planning = document.getElementById('planning');
+            
+            planning.innerHTML = Object.entries(hourSlots).map(([hour, slots]) => `
+                <div class="hour-block">
+                    <div class="hour-label">${String(hour).padStart(2, '0')}:00</div>
+                    <div class="slots-grid">
+                        ${slots.map(slot => {
+                            const id = `${getDateKey(slot.date)}_${slot.time}`;
+                            const classes = slot.booked ? 'time-slot booked' : 'time-slot available';
+                            const onclick = slot.booked ? '' : `onclick="selectSlot('${id}', '${slot.time}', ${dayIndex})"`;
+                            return `<div class="${classes}" id="${id}" ${onclick}>
+                                <span class="time-text">${slot.time}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+            
+            planning.scrollTop = 0;
+        }
+
+        function switchDay(index) {
+            currentDay = index;
+            document.querySelectorAll('.day-tab').forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+            });
+            renderPlanning(index);
+            hideValidation();
+        }
+
+        function selectSlot(id, time, dayIndex) {
+            if (selectedSlot) {
+                document.getElementById(selectedSlot)?.classList.remove('selected');
+            }
+            
+            selectedSlot = id;
+            document.getElementById(id).classList.add('selected');
+            
+            const days = getDays();
+            const day = days[dayIndex];
+            const [h, m] = time.split(':').map(Number);
+            const end = new Date();
+            end.setHours(h, m + 60);
+            const endTime = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+            
+            document.getElementById('valDate').textContent = day.toLocaleDateString('fr-FR', { 
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+            });
+            document.getElementById('valTime').textContent = `${time} → ${endTime}`;
+            
+            showValidation();
+        }
+
+        function showValidation() {
+            document.getElementById('validation').classList.add('show');
+        }
+
+        function hideValidation() {
+            document.getElementById('validation').classList.remove('show');
+            if (selectedSlot) {
+                document.getElementById(selectedSlot)?.classList.remove('selected');
+                selectedSlot = null;
+            }
+        }
+
+        function confirmBooking() {
+            const date = document.getElementById('valDate').textContent;
+            const time = document.getElementById('valTime').textContent;
+            const message = `ZCPS© - Je confirme ma réservation pour le ${date} de ${time}`;
+            window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`;
+        }
+
+        renderDays();
+        renderPlanning(0);
+    </script>
+</body>
+</html>            left: -100%;
             width: 200%;
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
