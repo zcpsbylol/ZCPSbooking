@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zaps by Lola - Réservation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #0a0e27 0%, #1a1042 50%, #0a0e27 100%);
+            color: white;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        .header {
+            padding: 30px 20px;
+            background: linear-gradient(135deg, rgba(255,165,0,0.15) 0%, rgba(255,105,180,0.15) 50%, rgba(64,224,208,0.15) 100%);
+            border-bottom: 3px solid transparent;
+            border-image: linear-gradient(90deg, #ffa500, #ff69b4, #40e0d0) 1;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0%, 100% { left: -100%; }
+            50% { left: 100%; }
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0, #ffa500);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease infinite;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-shadow: 0 0 20px rgba(255,165,0,0.3);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .days-nav {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            background: rgba(10, 14, 39, 0.8);
+            border-bottom: 2px solid rgba(255,165,0,0.3);
+            scrollbar-width: none;
+        }
+
+        .days-nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .day-tab {
+            flex: 0 0 33.333%;
+            padding: 18px 12px;
+            text-align: center;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+            scroll-snap-align: start;
+            background: transparent;
+        }
+
+        .day-tab.active {
+            background: linear-gradient(135deg, rgba(255,165,0,0.3), rgba(255,105,180,0.3), rgba(64,224,208,0.3));
+            border-bottom: 3px solid #ffa500;
+            box-shadow: 0 4px 20px rgba(255,165,0,0.4);
+        }
+
+        .day-tab .day-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #ffa500, #ff69b4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .day-tab.active .day-name {
+            -webkit-text-fill-color: white;
+        }
+
+        .day-tab .day-date {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .planning {
+            padding: 16px;
+            height: calc(100vh - 320px);
+            overflow-y: auto;
+        }
+
+        .time-slot {
+            padding: 22px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, rgba(255,165,0,0.08), rgba(255,105,180,0.08));
+            border: 2px solid rgba(255,165,0,0.3);
+            border-radius: 16px;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .time-slot::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .time-slot:hover::before {
+            left: 100%;
+        }
+
+        .time-slot:active {
+            transform: scale(0.96);
+        }
+
+        .time-slot.available:hover {
+            background: linear-gradient(135deg, rgba(255,165,0,0.25), rgba(255,105,180,0.25));
+            border-color: #ffa500;
+            box-shadow: 0 6px 25px rgba(255,165,0,0.4);
+        }
+
+        .time-slot.booked {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+            border-color: rgba(239, 68, 68, 0.3);
+            color: rgba(255, 255, 255, 0.4);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .time-slot.selected {
+            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0);
+            background-size: 200% 200%;
+            animation: gradientMove 3s ease infinite;
+            border-color: transparent;
+            box-shadow: 0 8px 30px rgba(255,165,0,0.6), 0 0 40px rgba(255,105,180,0.4);
+            transform: scale(1.02);
+        }
+
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hour-separator {
+            padding: 14px 0;
+            font-size: 13px;
+            color: rgba(255,165,0,0.7);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            margin: 8px 0;
+        }
+
+        .validation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 20px;
+            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0);
+            background-size: 200% 200%;
+            animation: gradientMove 4s ease infinite;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -6px 30px rgba(255,165,0,0.5);
+            border-top: 3px solid rgba(255,255,255,0.3);
+        }
+
+        .validation.show {
+            transform: translateY(0);
+        }
+
+        .validation-info {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .validation-time {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 6px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .validation-date {
+            font-size: 15px;
+            opacity: 0.95;
+            font-weight: 600;
+        }
+
+        .btn-validate {
+            width: 100%;
+            padding: 20px;
+            background: rgba(255,255,255,0.95);
+            color: #1a1042;
+            border: none;
+            border-radius: 16px;
+            font-size: 20px;
+            font-weight: 900;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-validate:active {
+            transform: scale(0.96);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            padding: 16px;
+            background: rgba(10, 14, 39, 0.6);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .logo-watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 11px;
+            opacity: 0.4;
+            color: rgba(255,165,0,0.6);
+            font-weight: 600;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ ZAPS Réservation</h1>
+        <p>By Lola • Choisissez votre créneau</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-box" style="background: linear-gradient(135deg, rgba(255,165,0,0.2), rgba(255,105,180,0.2)); border: 2px solid rgba(255,165,0,0.4);"></div>
+            <span>Disponible</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box" style="background: rgba(239, 68, 68, 0.2); border: 2px solid rgba(239, 68, 68, 0.4);"></div>
+            <span>Réservé</span>
+        </div>
+    </div>
+
+    <div class="days-nav" id="daysNav"></div>
+    <div class="planning" id="planning"></div>
+
+    <div class="validation" id="validation">
+        <div class="validation-info">
+            <div class="validation-date" id="valDate"></div>
+            <div class="validation-time" id="valTime"></div>
+        </div>
+        <button class="btn-validate" onclick="confirmBooking()">
+            ✓ Confirmer sur WhatsApp
+        </button>
+    </div>
+
+    <div class="logo-watermark">Zaps by Lola</div>
+
+    <script>
+        const WHATSAPP = '33605656753';
+        let selectedSlot = null;
+        let currentDay = 0;
+
+        // Créneaux réservés (à connecter avec Google Calendar)
+        const bookedSlots = {
+            '2025-11-29': ['14:30', '10:00'],
+            '2025-11-30': ['16:15']
+        };
+
+        function getDays() {
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() + i);
+                days.push(d);
+            }
+            return days;
+        }
+
+        function formatDayName(date, index) {
+            if (index === 0) return 'Aujourd\'hui';
+            if (index === 1) return 'Demain';
+            return date.toLocaleDateString('fr-FR', { weekday: 'short' });
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        }
+
+        function getDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function isBooked(date, time) {
+            const key = getDateKey(date);
+            return bookedSlots[key]?.includes(time) || false;
+        }
+
+        function generateTimeSlots(date, isToday) {
+            const now = new Date();
+            const startHour = isToday ? now.getHours() : 0;
+            const slots = [];
+            let currentHour = -1;
+
+            for (let h = startHour; h < 24; h++) {
+                for (let m = 0; m < 60; m += 15) {
+                    const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    const booked = isBooked(date, time);
+                    
+                    if (h !== currentHour) {
+                        slots.push({ type: 'separator', hour: h });
+                        currentHour = h;
+                    }
+                    
+                    slots.push({ type: 'slot', time, booked, date });
+                }
+            }
+            return slots;
+        }
+
+        function renderDays() {
+            const days = getDays();
+            const nav = document.getElementById('daysNav');
+            nav.innerHTML = days.map((day, i) => `
+                <div class="day-tab ${i === 0 ? 'active' : ''}" onclick="switchDay(${i})">
+                    <div class="day-name">${formatDayName(day, i)}</div>
+                    <div class="day-date">${formatDate(day)}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderPlanning(dayIndex) {
+            const days = getDays();
+            const day = days[dayIndex];
+            const slots = generateTimeSlots(day, dayIndex === 0);
+            const planning = document.getElementById('planning');
+            
+            planning.innerHTML = slots.map((item, i) => {
+                if (item.type === 'separator') {
+                    return `<div class="hour-separator">⚡ ${String(item.hour).padStart(2, '0')}h00</div>`;
+                }
+                
+                const id = `${getDateKey(item.date)}_${item.time}`;
+                const classes = item.booked ? 'time-slot booked' : 'time-slot available';
+                const onclick = item.booked ? '' : `onclick="selectSlot('${id}', '${item.time}', ${dayIndex})"`;
+                
+                return `<div class="${classes}" id="${id}" ${onclick}>${item.time}</div>`;
+            }).join('');
+            
+            planning.scrollTop = 0;
+        }
+
+        function switchDay(index) {
+            currentDay = index;
+            document.querySelectorAll('.day-tab').forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+            });
+            renderPlanning(index);
+            hideValidation();
+        }
+
+        function selectSlot(id, time, dayIndex) {
+            if (selectedSlot) {
+                document.getElementById(selectedSlot)?.classList.remove('selected');
+            }
+            
+            selectedSlot = id;
+            document.getElementById(id).classList.add('selected');
+            
+            const days = getDays();
+            const day = days[dayIndex];
+            const [h, m] = time.split(':').map(Number);
+            const end = new Date();
+            end.setHours(h, m + 60);
+            const endTime = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+            
+            document.getElementById('valDate').textContent = day.toLocaleDateString('fr-FR', { 
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+            });
+            document.getElementById('valTime').textContent = `${time} → ${endTime}`;
+            
+            showValidation();
+        }
+
+        function showValidation() {
+            document.getElementById('validation').classList.add('show');
+        }
+
+        function hideValidation() {
+            document.getElementById('validation').classList.remove('show');
+            if (selectedSlot) {
+                document.getElementById(selectedSlot)?.classList.remove('selected');
+                selectedSlot = null;
+            }
+        }
+
+        function confirmBooking() {
+            const date = document.getElementById('valDate').textContent;
+            const time = document.getElementById('valTime').textContent;
+            const message = `⚡ ZAPS - Je confirme ma réservation pour le ${date} de ${time}`;
+            window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`;
+        }
+
+        // Init
+        renderDays();
+        renderPlanning(0);
+    </script>
+</body>
+                                                        </html>
