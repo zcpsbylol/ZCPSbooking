@@ -375,6 +375,347 @@
     </script>
 
 </body>
+</html>            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        /* JOUR */
+        .days-nav {
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .days-nav::-webkit-scrollbar { display: none; }
+
+        .day-tab {
+            flex: 0 0 auto;
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 2px solid rgba(255,165,0,0.4);
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .day-tab.active {
+            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0);
+            color: #0a0e27;
+            font-weight: 900;
+        }
+
+        .day-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .day-date {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* PLANNING */
+        .planning {
+            padding: 20px;
+            padding-bottom: 160px;
+            height: calc(100vh - 240px);
+            overflow-y: auto;
+        }
+
+        .hour-separator {
+            text-align: left;
+            margin: 12px 0 6px;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: rgba(255,165,0,0.7);
+        }
+
+        /* SLOT */
+        .time-slot {
+            padding: 18px;
+            margin-bottom: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            border-radius: 14px;
+            transition: 0.25s;
+            cursor: pointer;
+            border: 2px solid rgba(255,165,0,0.4);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .time-slot.available:hover {
+            background: rgba(255,165,0,0.15);
+        }
+
+        .time-slot.booked {
+            background: rgba(239,68,68,0.25);
+            border-color: rgba(239,68,68,0.5);
+            color: rgba(255,255,255,0.6);
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .time-slot.booked::after {
+            content: "🔒";
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.8;
+        }
+
+        .time-slot.selected {
+            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0);
+            color: #0a0e27;
+            font-weight: 900;
+            transform: scale(1.03);
+            border-color: transparent;
+        }
+
+        /* VALIDATION */
+        .validation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 22px;
+            background: #ffffff10;
+            backdrop-filter: blur(12px);
+            border-top: 2px solid rgba(255,165,0,0.5);
+            transform: translateY(110%);
+            transition: 0.35s ease;
+        }
+
+        .validation.show {
+            transform: translateY(0);
+        }
+
+        .validation-date {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: #ffd79c;
+        }
+
+        .validation-time {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 18px;
+        }
+
+        .btn-validate {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            background: #25d366;
+            color: white;
+            font-size: 20px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-validate:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>⚡ Réservation ZAPS</h1>
+        <p>Choisissez votre créneau</p>
+    </div>
+
+    <!-- Navigation jours -->
+    <div class="days-nav" id="daysNav"></div>
+
+    <!-- Planning -->
+    <div class="planning" id="planning"></div>
+
+    <!-- Validation -->
+    <div class="validation" id="validation">
+        <div class="validation-date" id="valDate"></div>
+        <div class="validation-time" id="valTime"></div>
+
+        <button class="btn-validate" onclick="confirmBooking()">
+            Confirmer sur WhatsApp 💬
+        </button>
+    </div>
+
+    <script>
+        /**************** CONFIG ****************/
+        const WHATSAPP = "33605656753";
+        const intervalMinutes = 30; // CRÉNEAUX DE 30 MIN (modifier ici si tu veux)
+        
+        // Exemple de slots réservés
+        const bookedSlots = {
+            "2025-11-29": ["10:00", "14:30"],
+            "2025-11-30": ["16:00"]
+        };
+
+        let selectedSlot = null;
+        let currentDay = 0;
+
+
+        /**************** FONCTIONS DATES ****************/
+        function getDays() {
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() + i);
+                days.push(d);
+            }
+            return days;
+        }
+
+        function getDateKey(date) {
+            return date.toISOString().split("T")[0];
+        }
+
+        function formatDay(date, index) {
+            if (index === 0) return "Aujourd'hui";
+            if (index === 1) return "Demain";
+            return date.toLocaleDateString("fr-FR", { weekday: "long" });
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+        }
+
+
+        /**************** GÉNÉRATION CRÉNEAUX ****************/
+        function isBooked(date, time) {
+            const key = getDateKey(date);
+            return bookedSlots[key]?.includes(time) || false;
+        }
+
+        function generateTimeSlots(date, isToday) {
+            const now = new Date();
+            let hStart = 8;  // ouverture par défaut
+
+            if (isToday) {
+                const currentH = now.getHours();
+                if (currentH > hStart) hStart = currentH;
+            }
+
+            const slots = [];
+            for (let h = hStart; h < 22; h++) {
+                for (let m = 0; m < 60; m += intervalMinutes) {
+                    const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+
+                    slots.push({
+                        type: "slot",
+                        date,
+                        time,
+                        booked: isBooked(date, time)
+                    });
+                }
+            }
+            return slots;
+        }
+
+
+        /**************** RENDU INTERFACE ****************/
+        function renderDays() {
+            const days = getDays();
+            const nav = document.getElementById("daysNav");
+
+            nav.innerHTML = days.map((d, i) => `
+                <div class="day-tab ${i === 0 ? "active" : ""}" onclick="switchDay(${i})">
+                    <div class="day-name">${formatDay(d, i)}</div>
+                    <div class="day-date">${formatDate(d)}</div>
+                </div>
+            `).join("");
+        }
+
+        function renderPlanning(dayIndex) {
+            const days = getDays();
+            const date = days[dayIndex];
+            const slots = generateTimeSlots(date, dayIndex === 0);
+            const container = document.getElementById("planning");
+
+            let html = "";
+
+            let currentHour = -1;
+            for (const slot of slots) {
+                const h = slot.time.split(":")[0];
+                if (h != currentHour) {
+                    html += `<div class="hour-separator">${h}h00</div>`;
+                    currentHour = h;
+                }
+
+                html += `
+                    <div class="time-slot ${slot.booked ? "booked" : "available"}"
+                         id="${slot.time.replace(":", "")}"
+                         ${slot.booked ? "" : `onclick="selectSlot('${slot.time}', ${dayIndex})"`}>
+                        ${slot.time}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+
+        /**************** INTERACTION ****************/
+        function switchDay(i) {
+            currentDay = i;
+            selectedSlot = null;
+
+            document.querySelectorAll(".day-tab").forEach((d, idx) => d.classList.toggle("active", idx === i));
+            document.getElementById("validation").classList.remove("show");
+
+            renderPlanning(i);
+        }
+
+        function selectSlot(time, dayIndex) {
+            if (selectedSlot) {
+                document.getElementById(selectedSlot.replace(":", "")).classList.remove("selected");
+            }
+
+            selectedSlot = time;
+            document.getElementById(time.replace(":", "")).classList.add("selected");
+
+            const days = getDays();
+            const d = days[dayIndex];
+
+            const [h, m] = time.split(":");
+            const end = new Date(d);
+            end.setHours(parseInt(h), parseInt(m) + intervalMinutes);
+            const endTime = `${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`;
+
+            document.getElementById("valDate").textContent = `${formatDay(d, dayIndex)} • ${formatDate(d)}`;
+            document.getElementById("valTime").textContent = `${time} → ${endTime}`;
+
+            document.getElementById("validation").classList.add("show");
+        }
+
+
+        /**************** WHATSAPP ****************/
+        function confirmBooking() {
+            const date = document.getElementById("valDate").textContent;
+            const time = document.getElementById("valTime").textContent;
+
+            const msg = `⚡ ZAPS - Je confirme ma réservation pour ${date} de ${time}`;
+            window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
+        }
+
+        /**************** INIT ****************/
+        renderDays();
+        renderPlanning(0);
+    </script>
+
+</body>
 </html>
         /* HEADER */
         .header {
