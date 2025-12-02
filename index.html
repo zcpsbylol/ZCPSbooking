@@ -1,663 +1,149 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0a0e27">
-    <title>ZCPS© by Lola - Réservation</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&display=swap" rel="stylesheet">
+import React, { useState } from 'react';
+import { Calendar, Clock, Check } from 'lucide-react';
 
-    <style>
-        /* Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+const BookingHub = () => {
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  
+  // Créneaux réservés (simulation Google Calendar)
+  const bookedSlots = [
+    '2025-11-29T14:30',
+    '2025-11-29T10:00',
+    '2025-11-30T16:15'
+  ];
 
-        :root {
-            --gradient-brand: linear-gradient(135deg, #ffa500 0%, #ff69b4 50%, #40e0d0 100%);
-            --bg-dark: #0a0e27;
-            --shadow-glow: 0 8px 32px rgba(255, 165, 0, 0.25);
-        }
+  const getDays = () => {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    const dayAfter = new Date();
+    dayAfter.setDate(today.getDate() + 2);
+    
+    return [
+      { date: today, label: "Aujourd'hui" },
+      { date: tomorrow, label: "Demain" },
+      { date: dayAfter, label: dayAfter.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }) }
+    ];
+  };
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-dark);
-            color: white;
-            overflow-x: hidden;
-            position: relative;
-            min-height: 100vh;
-        }
+  const getHours = () => {
+    const hours = [];
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    for (let h = currentHour; h < 24; h++) {
+      hours.push(h);
+    }
+    return hours;
+  };
 
-        /* Effet de fond subtil */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 20% 80%, rgba(255, 165, 0, 0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(64, 224, 208, 0.08) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
+  const isBooked = (day, hour, minute) => {
+    const timeStr = `${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, '0')}-${String(day.date.getDate()).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    return bookedSlots.includes(timeStr);
+  };
 
-        .container {
-            position: relative;
-            z-index: 1;
-        }
+  const handleValidate = () => {
+    if (!selectedSlot) return;
+    const msg = `Je confirme ma réservation pour le ${selectedSlot.date} à ${selectedSlot.time}`;
+    window.open(`https://wa.me/33605656753?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 
-        /* HEADER */
-        .header {
-            padding: 36px 20px 28px;
-            background: linear-gradient(135deg, rgba(255,165,0,0.18), rgba(255,105,180,0.18), rgba(64,224,208,0.18));
-            backdrop-filter: blur(10px);
-            border-bottom: 2px solid rgba(255,165,0,0.4);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
+  const days = getDays();
+  const hours = getHours();
 
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--gradient-brand);
-            opacity: 0.7;
-        }
-
-        /* Animation de brillance liquide */
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-            animation: shine 8s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes shine {
-            0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        .brand {
-            position: relative;
-            z-index: 1;
-        }
-
-        .header h1 {
-            font-size: 32px;
-            font-weight: 900;
-            background: var(--gradient-brand);
-            background-size: 200% 200%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientFlow 6s ease infinite;
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
-        }
-
-        @keyframes gradientFlow {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        .copyright {
-            font-size: 11px;
-            font-weight: 600;
-            color: rgba(255, 165, 0, 0.8);
-            letter-spacing: 1px;
-            margin-top: 2px;
-        }
-
-        .tagline {
-            font-size: 14px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.7);
-            margin-top: 8px;
-        }
-
-        /* NAVIGATION JOURS */
-        .days-nav {
-            display: flex;
-            overflow-x: auto;
-            scrollbar-width: none;
-            scroll-snap-type: x mandatory;
-            gap: 10px;
-            padding: 16px;
-            background: rgba(255,255,255,0.03);
-            backdrop-filter: blur(8px);
-        }
-
-        .days-nav::-webkit-scrollbar { 
-            display: none; 
-        }
-
-        .day-tab {
-            flex: 0 0 110px;
-            padding: 14px 16px;
-            border-radius: 14px;
-            border: 2px solid rgba(255,165,0,0.3);
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            scroll-snap-align: center;
-            position: relative;
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .day-tab::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 12px;
-            background: var(--gradient-brand);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .day-tab:active {
-            transform: scale(0.95);
-        }
-
-        .day-tab.active {
-            background: var(--gradient-brand);
-            border-color: transparent;
-            box-shadow: var(--shadow-glow);
-            transform: scale(1.02);
-        }
-
-        .day-tab.active::before {
-            opacity: 1;
-        }
-
-        .day-name {
-            font-size: 14px;
-            font-weight: 700;
-            position: relative;
-            z-index: 1;
-        }
-
-        .day-tab.active .day-name {
-            color: #0a0e27;
-        }
-
-        .day-date {
-            font-size: 12px;
-            opacity: 0.85;
-            margin-top: 4px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .day-tab.active .day-date {
-            color: #0a0e27;
-            opacity: 0.9;
-        }
-
-        /* Indicateur de position */
-        .days-indicator {
-            display: flex;
-            justify-content: center;
-            gap: 6px;
-            padding: 10px;
-            background: rgba(255,255,255,0.02);
-        }
-
-        .indicator-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: rgba(255, 165, 0, 0.3);
-            transition: all 0.3s;
-        }
-
-        .indicator-dot.active {
-            width: 20px;
-            border-radius: 3px;
-            background: var(--gradient-brand);
-        }
-
-        /* PLANNING */
-        .planning {
-            padding: 20px;
-            padding-bottom: 180px;
-            height: calc(100vh - 280px);
-            overflow-y: auto;
-            scroll-behavior: smooth;
-        }
-
-        .planning::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .planning::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .planning::-webkit-scrollbar-thumb {
-            background: rgba(255, 165, 0, 0.3);
-            border-radius: 2px;
-        }
-
-        .hour-separator {
-            text-align: left;
-            margin: 20px 0 12px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: rgba(255,165,0,0.7);
-            padding-left: 4px;
-        }
-
-        /* CRÉNEAUX */
-        .time-slot {
-            padding: 20px;
-            margin-bottom: 12px;
-            font-size: 20px;
-            font-weight: 700;
-            text-align: center;
-            border-radius: 16px;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            border: 2px solid rgba(255,165,0,0.35);
-            background: rgba(255,255,255,0.04);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Effet de brillance au hover */
-        .time-slot::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-            transition: left 0.5s;
-        }
-
-        .time-slot.available:hover::before {
-            left: 100%;
-        }
-
-        .time-slot.available:hover {
-            background: rgba(255,165,0,0.12);
-            border-color: rgba(255,165,0,0.6);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.2);
-        }
-
-        .time-slot.available:active {
-            transform: scale(0.97);
-        }
-
-        .time-slot.booked {
-            background: rgba(239,68,68,0.15);
-            border-color: rgba(239,68,68,0.4);
-            color: rgba(255,255,255,0.5);
-            cursor: not-allowed;
-            position: relative;
-        }
-
-        .time-slot.booked::after {
-            content: "🔒";
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 18px;
-            opacity: 0.7;
-        }
-
-        .time-slot.selected {
-            background: var(--gradient-brand);
-            background-size: 200% 200%;
-            animation: gradientMove 3s ease infinite;
-            color: #0a0e27;
-            font-weight: 900;
-            transform: scale(1.03);
-            border-color: transparent;
-            box-shadow: var(--shadow-glow);
-        }
-
-        @keyframes gradientMove {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Checkmark animé */
-        .time-slot.selected::after {
-            content: "✓";
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 24px;
-            color: #0a0e27;
-            animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        @keyframes checkPop {
-            0% { transform: translateY(-50%) scale(0); }
-            50% { transform: translateY(-50%) scale(1.3); }
-            100% { transform: translateY(-50%) scale(1); }
-        }
-
-        /* PANNEAU DE VALIDATION */
-        .validation {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 24px 20px;
-            background: rgba(10, 14, 39, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 2px solid rgba(255,165,0,0.5);
-            transform: translateY(110%);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
-            z-index: 100;
-        }
-
-        .validation::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--gradient-brand);
-        }
-
-        .validation.show {
-            transform: translateY(0);
-        }
-
-        .validation-label {
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: rgba(255, 165, 0, 0.7);
-            margin-bottom: 8px;
-        }
-
-        .validation-date {
-            text-align: center;
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: rgba(255, 215, 156, 0.95);
-        }
-
-        .validation-time {
-            text-align: center;
-            font-size: 24px;
-            font-weight: 900;
-            margin-bottom: 20px;
-            background: var(--gradient-brand);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.5px;
-        }
-
-        .btn-validate {
-            width: 100%;
-            padding: 18px;
-            border-radius: 16px;
-            border: none;
-            background: #25d366;
-            color: white;
-            font-size: 18px;
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 6px 24px rgba(37, 211, 102, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-validate::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .btn-validate:hover::before {
-            opacity: 1;
-        }
-
-        .btn-validate:active {
-            transform: scale(0.96);
-            box-shadow: 0 3px 12px rgba(37, 211, 102, 0.4);
-        }
-
-        /* Footer watermark */
-        .watermark {
-            position: fixed;
-            bottom: 8px;
-            right: 12px;
-            font-size: 10px;
-            font-weight: 600;
-            color: rgba(255, 165, 0, 0.3);
-            letter-spacing: 0.5px;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        /* Animation d'entrée */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .time-slot {
-            animation: fadeIn 0.3s ease backwards;
-        }
-
-        .time-slot:nth-child(1) { animation-delay: 0.05s; }
-        .time-slot:nth-child(2) { animation-delay: 0.1s; }
-        .time-slot:nth-child(3) { animation-delay: 0.15s; }
-        .time-slot:nth-child(4) { animation-delay: 0.2s; }
-    </style>
-</head>
-
-<body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="brand">
-                <h1>⚡ ZCPS©</h1>
-                <div class="copyright">by Lola</div>
+  return (
+    <div className="min-h-screen bg-slate-900 p-4">
+      <div className="max-w-5xl mx-auto">
+        
+        <div className="bg-slate-800 rounded-lg p-6 mb-4 border border-slate-700">
+          <div className="flex items-center gap-3">
+            <Calendar className="text-emerald-400" size={28} />
+            <div>
+              <h1 className="text-2xl font-bold text-white">Réservation</h1>
+              <p className="text-slate-400 text-sm">Cliquez sur un créneau disponible</p>
             </div>
-            <p class="tagline">Choisissez votre créneau</p>
-        </header>
+          </div>
+        </div>
 
-        <!-- Navigation jours -->
-        <nav class="days-nav" id="daysNav"></nav>
-        
-        <!-- Indicateur de position -->
-        <div class="days-indicator" id="daysIndicator"></div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+          
+          <div className="grid grid-cols-3 border-b border-slate-700">
+            {days.map((day, i) => (
+              <div key={i} className={`p-3 text-center border-r last:border-r-0 border-slate-700 ${i === 0 ? 'bg-emerald-900/30' : ''}`}>
+                <div className="text-white font-semibold">{day.label}</div>
+                <div className="text-slate-400 text-xs">{day.date.getDate()} {day.date.toLocaleDateString('fr-FR', { month: 'short' })}</div>
+              </div>
+            ))}
+          </div>
 
-        <!-- Planning -->
-        <main class="planning" id="planning"></main>
+          <div className="grid grid-cols-3 max-h-96 overflow-y-auto">
+            {days.map((day, dayIdx) => (
+              <div key={dayIdx} className="border-r last:border-r-0 border-slate-700">
+                {hours.map(hour => (
+                  <div key={hour} className="border-b border-slate-700/50">
+                    {[0, 15, 30, 45].map(min => {
+                      const booked = isBooked(day, hour, min);
+                      const timeStr = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+                      const dateStr = day.date.toLocaleDateString('fr-FR');
+                      const isSelected = selectedSlot?.time === timeStr && selectedSlot?.date === dateStr;
+                      
+                      return (
+                        <div
+                          key={min}
+                          onClick={() => !booked && setSelectedSlot({ time: timeStr, date: dateStr })}
+                          className={`h-12 flex items-center justify-center text-xs cursor-pointer transition-colors ${
+                            booked 
+                              ? 'bg-red-900/30 text-red-400 cursor-not-allowed' 
+                              : isSelected
+                              ? 'bg-emerald-500 text-white font-bold'
+                              : 'bg-slate-800 text-slate-400 hover:bg-emerald-900/40 hover:text-white'
+                          }`}
+                        >
+                          {timeStr}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <!-- Validation -->
-        <aside class="validation" id="validation">
-            <div class="validation-label">Votre réservation</div>
-            <div class="validation-date" id="valDate"></div>
-            <div class="validation-time" id="valTime"></div>
-            <button class="btn-validate" onclick="confirmBooking()">
-                Confirmer sur WhatsApp 💬
-            </button>
-        </aside>
-
-        <!-- Watermark -->
-        <footer class="watermark">ZCPS© by Lola</footer>
-    </div>
-
-    <script>
-        /**************** CONFIG ****************/
-        const WHATSAPP = "33605656753";
-        const intervalMinutes = 30; // Créneaux de 30 minutes
-        const openingHour = 8;      // Ouverture 8h
-        const closingHour = 22;     // Fermeture 22h
-        
-        // Créneaux réservés (à connecter avec Google Calendar)
-        const bookedSlots = {
-            "2025-11-29": ["10:00", "14:30"],
-            "2025-11-30": ["16:00"]
-        };
-
-        let selectedSlot = null;
-        let currentDay = 0;
-
-        /**************** FONCTIONS DATES ****************/
-        function getDays() {
-            const days = [];
-            for (let i = 0; i < 7; i++) {
-                const d = new Date();
-                d.setDate(d.getDate() + i);
-                days.push(d);
-            }
-            return days;
-        }
-
-        function getDateKey(date) {
-            return date.toISOString().split("T")[0];
-        }
-
-        function formatDay(date, index) {
-            if (index === 0) return "Aujourd'hui";
-            if (index === 1) return "Demain";
-            const day = date.toLocaleDateString("fr-FR", { weekday: "long" });
-            return day.charAt(0).toUpperCase() + day.slice(1);
-        }
-
-        function formatDate(date) {
-            return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-        }
-
-        /**************** CRÉNEAUX ****************/
-        function isBooked(date, time) {
-            const key = getDateKey(date);
-            return bookedSlots[key]?.includes(time) || false;
-        }
-
-        function generateTimeSlots(date, isToday) {
-            const now = new Date();
-            let hStart = openingHour;
-
-            if (isToday) {
-                const currentH = now.getHours();
-                if (currentH >= openingHour) hStart = currentH;
-            }
-
-            const slots = [];
-            for (let h = hStart; h < closingHour; h++) {
-                for (let m = 0; m < 60; m += intervalMinutes) {
-                    const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-                    slots.push({
-                        date,
-                        time,
-                        booked: isBooked(date, time),
-                        hour: h
-                    });
-                }
-            }
-            return slots;
-        }
-
-        /**************** RENDU ****************/
-        function renderDays() {
-            const days = getDays();
-            const nav = document.getElementById("daysNav");
-            const indicator = document.getElementById("daysIndicator");
-
-            nav.innerHTML = days.map((d, i) => `
-                <div class="day-tab ${i === 0 ? "active" : ""}" onclick="switchDay(${i})">
-                    <div class="day-name">${formatDay(d, i)}</div>
-                    <div class="day-date">${formatDate(d)}</div>
+        {selectedSlot && (
+          <div className="mt-4 bg-emerald-900/30 rounded-lg p-4 border border-emerald-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Clock className="text-emerald-400" size={20} />
+                <div className="text-white">
+                  <span className="font-semibold">{selectedSlot.date}</span>
+                  <span className="mx-2">•</span>
+                  <span>{selectedSlot.time}</span>
                 </div>
-            `).join("");
+              </div>
+              <button
+                onClick={handleValidate}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-6 py-2 rounded-lg flex items-center gap-2"
+              >
+                <Check size={18} />
+                Valider
+              </button>
+            </div>
+          </div>
+        )}
 
-            indicator.innerHTML = days.map((_, i) => 
-                `<div class="indicator-dot ${i === 0 ? "active" : ""}"></div>`
-            ).join("");
-        }
+        <div className="mt-4 flex gap-4 justify-center text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-slate-800 border border-slate-600 rounded"></div>
+            <span className="text-slate-400">Disponible</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-900/30 border border-red-700 rounded"></div>
+            <span className="text-slate-400">Réservé</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-        function renderPlanning(dayIndex) {
-            const days = getDays();
-            const date = days[dayIndex];
-            const slots = generateTimeSlots(date, dayIndex === 0);
-            const container = document.getElementById("planning");
-
-            let html = "";
-            let currentHour = -1;
-
-            for (const slot of slots) {
-                if (slot.hour !== currentHour) {
-                    html += `<div class="hour-separator">${String(slot.hour).padStart(2, "0")}:00</div>`;
-                    currentHour = slot.hour;
-                }
-
-                const id = `slot-${slot.time.replace(":", "")}`;
-                html += `
-                    <div class="time-slot ${slot.booked ? "booked" : "available"}"
-                         id="${id}"
-                         ${slot.booked ? "" : `onclick="selectSlot('${slot.time}', ${dayIndex})"`}>
-                        ${slot.time}
-                    </div>
-                `;
-            }
-
-            container.innerHTML = html;
-            container.scrollTop = 0;
-        }
-
-        /**************** INTERACTION ****************/
-        function switchDay(i) {
-            currentDay = i;
-            selectedSlot = null;
-
-            document.querySelectorAll(".day-tab").forEach((d, idx) => 
-                d.classList.toggle("active", idx === i)
-            );
-            
-            document.querySelectorAll(".indicator-dot").forEach((dot, idx) => 
-                dot.classList.toggle("active", idx === i)
-            );
-
-            document.getElementById("validation").classList.remove("show");
-            renderPlanning(i);
-        }
-
-        function selectSlot(time, dayIndex) {
-            // Désélectionner l'ancien
-            if (selectedSlot) {
-                document.getElementById(`slot-${selectedSlot.replace(":", "")}`)?.classList.remove("selected");
-            }
-
-            // Sélectionner le nouveau
-            sei
+export default BookingHub;
