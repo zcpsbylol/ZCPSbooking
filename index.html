@@ -1,379 +1,457 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Zaps by Lola - Réservation</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ZCPS by Lola — Réservation</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050517;
+    --card:#0f1220;
+    --muted:#bda98b;
+    --gold:#d0b08a;
+    --accent:#c79a60;
+    --glass: rgba(255,255,255,0.03);
+    --success:#25d366;
+    --error:#ef4444;
+    --white: #f8f7f5;
+    --buffer: rgba(255,193,7,0.1);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+    background: linear-gradient(180deg,#04040a 0%, var(--bg) 100%);
+    color:var(--white);
+    -webkit-font-smoothing:antialiased;
+  }
 
-    <style>
-        /* Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+  .wrap{max-width:460px;margin:0 auto;padding:16px;}
+  header{display:flex;gap:12px;align-items:center;padding:12px 6px;border-radius:12px;margin-bottom:10px}
+  .logo{width:64px;height:64px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,rgba(208,176,138,0.08),rgba(201,168,111,0.04));display:flex;align-items:center;justify-content:center}
+  .logo img{width:100%;height:100%;object-fit:cover;display:block}
+  .hdr-text{display:flex;flex-direction:column}
+  .brand{font-family:"Playfair Display",serif;font-size:18px;color:var(--gold);line-height:1}
+  .sub{font-size:13px;color:var(--muted);margin-top:3px;text-transform:lowercase}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0e27;
-            color: white;
-            overflow-x: hidden;
-        }
+  .lead{font-size:13px;color:var(--muted);margin:12px 0 14px}
 
-        /* HEADER */
-        .header {
-            padding: 36px 20px;
-            background: linear-gradient(135deg, rgba(255,165,0,0.25), rgba(255,105,180,0.25), rgba(64,224,208,0.25));
-            border-bottom: 2px solid rgba(255,165,0,0.5);
-            text-align: center;
-        }
+  /* Calendrier — Nouveau: grille mensuelle */
+  .calendar-container{margin:0 0 16px;display:flex;flex-direction:column;gap:8px}
+  .calendar-header{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+  .month-label{font-size:14px;font-weight:600;color:var(--gold);text-transform:capitalize}
+  .nav-btn{width:32px;height:32px;border:none;background:var(--glass);border-radius:50%;color:var(--muted);font-size:18px;cursor:pointer;transition:all .2s;outline:2px solid transparent;outline-offset:2px}
+  .nav-btn:hover{background:var(--accent);color:var(--white);transform:scale(1.1)}
+  .nav-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;max-width:100%;background:var(--glass);border-radius:12px;padding:4px}
+  .weekday-header{padding:8px 4px;text-align:center;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+  .cal-day{position:relative;padding:12px 4px;text-align:center;border-radius:8px;cursor:pointer;transition:all .18s;font-size:14px;font-weight:500;outline:2px solid transparent;outline-offset:-2px}
+  .cal-day.outside{opacity:0.3;pointer-events:none} /* Jours hors mois */
+  .cal-day.past{opacity:0.4;pointer-events:none;background:transparent} /* Jours passés */
+  .cal-day.today{border:2px solid var(--success);background:var(--success);color:#07101a} /* Aujourd'hui */
+  .cal-day.active{border:2px solid var(--accent);background:var(--accent);color:#07101a;transform:scale(1.05)} /* Sélectionné */
+  .cal-day:hover:not(.past):not(.outside){background:var(--gold);color:#07101a;transform:translateY(-2px)}
+  .cal-day:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .cal-day .date{font-size:16px;line-height:1}
+  .cal-day .wkday{display:none} /* Optionnel: abrév. si besoin */
 
-        .header h1 {
-            font-size: 30px;
-            font-weight: 900;
-            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 6px;
-        }
+  /* Multi-mois — Si CALENDAR_MONTHS >1 */
+  .multi-calendar{display:flex;gap:12px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
+  .multi-calendar::-webkit-scrollbar{height:4px}
+  .single-calendar{flex:1;min-width:200px}
 
-        /* JOUR */
-        .days-nav {
-            display: flex;
-            overflow-x: auto;
-            scrollbar-width: none;
-            gap: 10px;
-            padding: 15px;
-            background: rgba(255,255,255,0.05);
-        }
+  .planning{padding:8px 4px 140px;height:calc(100vh - 320px);overflow-y:auto;position:relative} /* Ajusté pour calendrier */
+  .loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:2px solid var(--glass);border-top:2px solid var(--accent);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;display:none}
+  @keyframes spin{0%{transform:translate(-50%,-50%) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
+  .hour{font-size:12px;color:var(--muted);margin:12px 0 8px}
+  .slot{padding:12px;border-radius:12px;margin-bottom:10px;text-align:center;font-weight:800;cursor:pointer;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden;outline:2px solid transparent;outline-offset:-2px}
+  .slot::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:var(--buffer);opacity:0;transition:opacity .2s}
+  .slot.available:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,0.5)}
+  .slot.booked{opacity:0.5;cursor:not-allowed;border-color:var(--error);background:linear-gradient(180deg,rgba(239,68,68,0.1),transparent)}
+  .slot.booked::after{opacity:1;background:var(--error)}
+  .slot.buffered::after{opacity:0.3}
+  .slot.selected{background:linear-gradient(135deg, rgba(208,176,138,0.18), rgba(199,154,96,0.12));color:#07101a;border-color:transparent;transform:scale(1.02)}
+  .slot:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
-        .days-nav::-webkit-scrollbar { display: none; }
+  .panel{position:fixed;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(180deg,rgba(7,10,20,0.6),rgba(7,10,20,0.88));backdrop-filter:blur(6px);border-top:1px solid rgba(255,255,255,0.03);transition:padding-bottom .3s}
+  .panel.keyboard-open{padding-bottom:calc(14px + env(keyboard-inset-height, 0px))}
+  .panel-inner{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:10px;padding:0 16px}
+  .sel-info{font-size:13px;color:var(--muted);text-align:center}
+  .time-row{display:flex;gap:8px;align-items:center;justify-content:center}
+  .time-display{min-width:120px;padding:10px;border-radius:10px;background:var(--glass);text-align:center;font-weight:800;color:var(--white)}
+  .adj-btn{width:44px;height:44px;border-radius:10px;border:none;background:var(--gold);color:#07101a;font-weight:900;font-size:18px;cursor:pointer;outline:2px solid transparent;outline-offset:2px;transition:all .2s}
+  .adj-btn:hover{transform:scale(1.05)}
+  .adj-btn:focus-visible{outline:2px solid var(--white);outline-offset:2px}
+  .book-btn{background:linear-gradient(180deg,var(--gold),var(--accent));border:none;padding:14px;border-radius:12px;font-weight:900;font-size:16px;color:#07101a;cursor:pointer;outline:2px solid transparent;outline-offset:2px;transition:all .2s}
+  .book-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 16px rgba(208,176,138,0.3)}
+  .book-btn:focus-visible{outline:2px solid var(--white);outline-offset:2px}
+  .book-btn:disabled{opacity:0.6;cursor:not-allowed}
 
-        .day-tab {
-            flex: 0 0 auto;
-            padding: 12px 18px;
-            border-radius: 14px;
-            border: 2px solid rgba(255,165,0,0.4);
-            cursor: pointer;
-            text-align: center;
-            transition: 0.2s;
-        }
+  .toast{position:fixed;top:20px;right:20px;padding:12px 16px;border-radius:8px;background:var(--success);color:#07101a;font-weight:600;transform:translateX(100%);transition:transform .3s;z-index:1000}
+  .toast.error{background:var(--error);color:var(--white)}
+  .toast.show{transform:translateX(0)}
 
-        .day-tab.active {
-            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0);
-            color: #0a0e27;
-            font-weight: 900;
-        }
+  .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:1001;justify-content:center;align-items:center}
+  .modal-content{background:var(--card);padding:24px;border-radius:16px;max-width:320px;text-align:center;animation:fadeIn .2s}
+  @keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
 
-        .day-name {
-            font-size: 14px;
-            font-weight: 700;
-        }
+  .meta{font-size:12px;color:var(--muted);text-align:center}
 
-        .day-date {
-            font-size: 12px;
-            opacity: 0.9;
-        }
+  .admin{display:flex;gap:8px;justify-content:center;margin-top:6px}
+  .admin button{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer;outline:2px solid transparent;outline-offset:2px;transition:all .2s}
+  .admin button:hover{background:var(--glass);color:var(--gold)}
+  .admin button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
-        /* PLANNING */
-        .planning {
-            padding: 20px;
-            padding-bottom: 160px;
-            height: calc(100vh - 240px);
-            overflow-y: auto;
-        }
-
-        .hour-separator {
-            text-align: left;
-            margin: 12px 0 6px;
-            font-size: 12px;
-            text-transform: uppercase;
-            color: rgba(255,165,0,0.7);
-        }
-
-        /* SLOT */
-        .time-slot {
-            padding: 18px;
-            margin-bottom: 12px;
-            font-size: 20px;
-            font-weight: 700;
-            text-align: center;
-            border-radius: 14px;
-            transition: 0.25s;
-            cursor: pointer;
-            border: 2px solid rgba(255,165,0,0.4);
-            background: rgba(255,255,255,0.05);
-        }
-
-        .time-slot.available:hover {
-            background: rgba(255,165,0,0.15);
-        }
-
-        .time-slot.booked {
-            background: rgba(239,68,68,0.25);
-            border-color: rgba(239,68,68,0.5);
-            color: rgba(255,255,255,0.6);
-            cursor: not-allowed;
-            position: relative;
-        }
-
-        .time-slot.booked::after {
-            content: "🔒";
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0.8;
-        }
-
-        .time-slot.selected {
-            background: linear-gradient(135deg, #ffa500, #ff69b4, #40e0d0);
-            color: #0a0e27;
-            font-weight: 900;
-            transform: scale(1.03);
-            border-color: transparent;
-        }
-
-        /* VALIDATION */
-        .validation {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 22px;
-            background: #ffffff10;
-            backdrop-filter: blur(12px);
-            border-top: 2px solid rgba(255,165,0,0.5);
-            transform: translateY(110%);
-            transition: 0.35s ease;
-        }
-
-        .validation.show {
-            transform: translateY(0);
-        }
-
-        .validation-date {
-            text-align: center;
-            font-size: 16px;
-            margin-bottom: 4px;
-            color: #ffd79c;
-        }
-
-        .validation-time {
-            text-align: center;
-            font-size: 20px;
-            font-weight: 900;
-            margin-bottom: 18px;
-        }
-
-        .btn-validate {
-            width: 100%;
-            padding: 18px;
-            border-radius: 16px;
-            border: none;
-            background: #25d366;
-            color: white;
-            font-size: 20px;
-            font-weight: 800;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn-validate:active {
-            transform: scale(0.96);
-        }
-    </style>
+  @media (max-width:420px){
+    .logo{width:56px;height:56px}
+    .cal-day{padding:8px 2px;font-size:12px}
+    .cal-day .date{font-size:14px}
+  }
+</style>
 </head>
-
-
 <body>
+  <div class="wrap" role="main" aria-label="Réservation ZCPS by Lola">
+    <header>
+      <div class="logo"><img src="logo.png" alt="ZCPS logo" /></div>
+      <div class="hdr-text">
+        <div class="brand">ZCPS</div>
+        <div class="sub">réservation en ligne</div>
+      </div>
+    </header>
 
-    <!-- Header -->
-    <div class="header">
-        <h1>⚡ Réservation ZAPS</h1>
-        <p>Choisissez votre créneau</p>
+    <div class="lead">Durée 25 min · buffer configurable · réservation ≥ 2h · 24/7</div>
+
+    <!-- Nouveau: Conteneur calendrier -->
+    <div id="calendarContainer" class="calendar-container" aria-label="Calendrier de sélection des jours"></div>
+
+    <main id="planning" class="planning" aria-live="polite" aria-label="Créneaux horaires disponibles">
+      <div class="loading" id="loadingSpinner"></div>
+    </main>
+
+    <div class="panel" id="panel" aria-hidden="false">
+      <div class="panel-inner">
+        <div id="selInfo" class="sel-info">Aucun créneau sélectionné</div>
+
+        <div id="adjuster" class="time-row" style="display:none">
+          <button id="minus" class="adj-btn" aria-label="Diminuer l'heure">−</button>
+          <div id="timeDisplay" class="time-display">--:--</div>
+          <button id="plus" class="adj-btn" aria-label="Augmenter l'heure">+</button>
+        </div>
+
+        <button id="bookBtn" class="book-btn" disabled>Valider la réservation</button>
+
+        <div class="meta">Les réservations sont partagées si booked.json existe dans le repo (optionnel).</div>
+
+        <div class="admin">
+          <button id="exportBtn" title="Exporter les réservations locales">Export bookings</button>
+          <button id="reloadBtn" title="Charger booked.json depuis le repo">Reload remote bookings</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Navigation jours -->
-    <div class="days-nav" id="daysNav"></div>
-
-    <!-- Planning -->
-    <div class="planning" id="planning"></div>
-
-    <!-- Validation -->
-    <div class="validation" id="validation">
-        <div class="validation-date" id="valDate"></div>
-        <div class="validation-time" id="valTime"></div>
-
-        <button class="btn-validate" onclick="confirmBooking()">
-            Confirmer sur WhatsApp 💬
-        </button>
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <h3>Confirmer la réservation ?</h3>
+        <p id="modalDetails"></p>
+        <div style="display:flex;gap:12px;margin-top:16px">
+          <button id="confirmYes" class="book-btn" style="flex:1">Oui, réserver</button>
+          <button id="confirmNo" style="flex:1;padding:14px;border-radius:12px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-weight:900;outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:all .2s">Annuler</button>
+        </div>
+      </div>
     </div>
 
-    <script>
-        /**************** CONFIG ****************/
-        const WHATSAPP = "33605656753";
-        const intervalMinutes = 30; // CRÉNEAUX DE 30 MIN (modifier ici si tu veux)
-        
-        // Exemple de slots réservés
-        const bookedSlots = {
-            "2025-11-29": ["10:00", "14:30"],
-            "2025-11-30": ["16:00"]
-        };
+    <div id="toast" class="toast"></div>
+  </div>
 
-        let selectedSlot = null;
-        let currentDay = 0;
+<script>
+/* =======================
+   CONFIG — Ajouts: calendrier
+   ======================= */
+const CONFIG = {
+  PHONE: '33605656753',
+  DAYS_COUNT: 14, // Limite jours (calendrier montre jusqu'à ça)
+  DISPLAYSTEPMIN: 30,
+  SLOTDURATIONMIN: 25,
+  BUFFER_MIN: 30,
+  INCREMENT_MIN: 5,
+  MINADVANCEHOURS: 2,
+  PLANNINGSTARTHOUR: 8,
+  PLANNINGENDHOUR: 22,
+  MAXSLOTSPER_DAY: 10,
+  CALENDAR_MONTHS: 1, // 1 pour single, 2 pour multi-mois côte à côte
+  WEEK_START: 1, // 1=lundi, 0=dimanche
+  REMOTEBOOKEDPATH: './booked.json'
+};
 
+/* =======================
+   STATE
+   ======================= */
+let days = [];
+let currentDayIndex = 0;
+let currentMonthIndex = 0; // Pour navigation calendrier
+let remoteBooked = [];
+let localBooked = [];
+const LSKEY = 'zcpslocalbookingsv1';
+try { localBooked = JSON.parse(localStorage.getItem(LSKEY) || '[]') } catch(e){ localBooked = [] }
 
-        /**************** FONCTIONS DATES ****************/
-        function getDays() {
-            const days = [];
-            for (let i = 0; i < 7; i++) {
-                const d = new Date();
-                d.setDate(d.getDate() + i);
-                days.push(d);
-            }
-            return days;
+let selected = null;
+let isLoading = false;
+let isSubmitting = false; // Prévenir les soumissions multiples
+
+/* =======================
+   HELPERS
+   ======================= */
+const pad = n => String(n).padStart(2,'0');
+const addMinutes = (d, m) => new Date(d.getTime() + m * 60000);
+const slotKey = d => d.toISOString();
+const isoDateKey = d => d.toISOString().split('T')[0];
+
+function now(){ return new Date(); }
+function snapToMinutes(d, step = CONFIG.INCREMENT_MIN) {
+  const mins = d.getMinutes();
+  d.setMinutes(Math.round(mins / step) * step);
+  return d;
+}
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${isError ? 'error' : ''} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function setLoading(show) {
+  isLoading = show;
+  document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+  document.getElementById('planning').style.opacity = show ? '0.5' : '1';
+}
+
+/* =======================
+   CALENDRIER HELPERS — Nouveaux
+   ======================= */
+function getMonthName(m) { // FR
+  return ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'][m];
+}
+function getWeekDayName(d) { // Abrév FR, lundi premier
+  return ['Di','Lu','Ma','Me','Je','Ve','Sa'][d];
+}
+function getDaysInMonth(y, m) {
+  return new Date(y, m + 1, 0).getDate();
+}
+function getFirstDayOfMonth(y, m) {
+  const d = new Date(y, m, 1);
+  return (d.getDay() + 6 - CONFIG.WEEK_START + 7) % 7; // Ajust pour lundi=0
+}
+
+function addMonths(d, months) {
+  const newD = new Date(d);
+  newD.setMonth(d.getMonth() + months);
+  return newD;
+}
+
+/* =======================
+   RENDER CALENDRIER — Nouveau
+   ======================= */
+function renderCalendar(monthIdx = currentMonthIndex) {
+  const container = document.getElementById('calendarContainer');
+  container.innerHTML = '';
+
+  if (CONFIG.CALENDAR_MONTHS > 1) {
+    const multi = document.createElement('div');
+    multi.className = 'multi-calendar';
+    for (let i = 0; i < CONFIG.CALENDAR_MONTHS; i++) {
+      const single = renderSingleMonth(monthIdx + i);
+      single.classList.add('single-calendar');
+      multi.appendChild(single);
+    }
+    container.appendChild(multi);
+  } else {
+    const single = renderSingleMonth(monthIdx);
+    container.appendChild(single);
+  }
+
+  // Highlight today et active
+  const today = now();
+  document.querySelectorAll('.cal-day').forEach(cell => {
+    const cellDate = new Date(cell.dataset.year, cell.dataset.month, cell.dataset.day);
+    if (isoDateKey(cellDate) === isoDateKey(today)) cell.classList.add('today');
+    if (selected && isoDateKey(cellDate) === isoDateKey(selected.start)) cell.classList.add('active');
+  });
+}
+
+function renderSingleMonth(monthIdx) {
+  const baseDate = new Date(now().getFullYear(), now().getMonth() + monthIdx, 1);
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+
+  const cal = document.createElement('div');
+  cal.className = 'calendar';
+
+  // Header mois
+  const hdr = document.createElement('div');
+  hdr.className = 'calendar-header';
+  const monthLabel = `${getMonthName(month)} ${year}`;
+  hdr.innerHTML = `
+    <button id="prevMonth" class="nav-btn" aria-label="Mois précédent, actuellement ${monthLabel}">‹</button>
+    <div class="month-label">${monthLabel}</div>
+    <button id="nextMonth" class="nav-btn" aria-label="Mois suivant, actuellement ${monthLabel}">›</button>
+  `;
+  cal.appendChild(hdr);
+
+  // Headers jours
+  const grid = document.createElement('div');
+  grid.className = 'calendar-grid';
+  [0,1,2,3,4,5,6].forEach(wd => {
+    const th = document.createElement('div');
+    th.className = 'weekday-header';
+    th.textContent = getWeekDayName(wd);
+    grid.appendChild(th);
+  });
+
+  // Jours hors mois (padding)
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day outside';
+    grid.appendChild(empty);
+  }
+
+  // Jours du mois
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayDate = new Date(year, month, d);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = dayDate < today;
+    const dayIdx = days.findIndex(day => isoDateKey(day) === isoDateKey(dayDate)); // Index dans days[]
+    const cell = document.createElement('div');
+    cell.className = `cal-day ${isPast ? 'past' : ''}`;
+    cell.dataset.year = year;
+    cell.dataset.month = month;
+    cell.dataset.day = d;
+    cell.innerHTML = `<div class="date">${d}</div>`;
+    if (dayIdx !== -1 && !isPast) {
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('tabindex', '0');
+      cell.addEventListener('click', () => switchDay(dayIdx));
+      cell.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          switchDay(dayIdx);
         }
+      });
+    }
+    grid.appendChild(cell);
+  }
 
-        function getDateKey(date) {
-            return date.toISOString().split("T")[0];
-        }
+  // Compléter semaines (prochain mois, mais outside)
+  let totalCells = grid.children.length;
+  while (totalCells % 7 !== 0) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day outside';
+    grid.appendChild(empty);
+    totalCells++;
+  }
 
-        function formatDay(date, index) {
-            if (index === 0) return "Aujourd'hui";
-            if (index === 1) return "Demain";
-            return date.toLocaleDateString("fr-FR", { weekday: "long" });
-        }
+  cal.appendChild(grid);
 
-        function formatDate(date) {
-            return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-        }
+  // Nav handlers (scope local)
+  const prevBtn = hdr.querySelector('#prevMonth');
+  const nextBtn = hdr.querySelector('#nextMonth');
+  if (prevBtn) prevBtn.addEventListener('click', () => { currentMonthIndex--; renderCalendar(); });
+  if (nextBtn) nextBtn.addEventListener('click', () => { 
+    currentMonthIndex++; 
+    const futureDate = addMonths(now(), currentMonthIndex);
+    if (futureDate.getDate() > CONFIG.DAYS_COUNT) currentMonthIndex--; // Limite
+    renderCalendar(); 
+  });
 
+  return cal;
+}
 
-        /**************** GÉNÉRATION CRÉNEAUX ****************/
-        function isBooked(date, time) {
-            const key = getDateKey(date);
-            return bookedSlots[key]?.includes(time) || false;
-        }
+/* =======================
+   DAYS GENERATION — Adapté pour calendrier
+   ======================= */
+function genDays(){
+  days = [];
+  const base = new Date();
+  base.setHours(0,0,0,0);
+  for(let i=0; i<CONFIG.DAYS_COUNT; i++){
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    days.push(d);
+  }
+}
 
-        function generateTimeSlots(date, isToday) {
-            const now = new Date();
-            let hStart = 8;  // ouverture par défaut
+/* =======================
+   REMOTE BOOKED
+   ======================= */
+async function loadRemoteBooked(retry = false) {
+  if (isLoading) return;
+  setLoading(true);
+  try {
+    const res = await fetch(CONFIG.REMOTEBOOKEDPATH + '?_=' + Date.now());
+    if (!res.ok) throw new Error('Fetch failed');
+    const data = await res.json();
+    let arr = Array.isArray(data) ? data : [];
+    if (arr.length && typeof arr[0] === 'string') {
+      remoteBooked = arr.map(s => ({start: s}));
+    } else {
+      remoteBooked = arr.map(o => (typeof o === 'string' ? {start:o} : o));
+    }
+    showToast('Bookings remote chargés');
+  } catch (e) {
+    console.warn('loadRemoteBooked fail', e);
+    remoteBooked = [];
+    if (retry) showToast('Échec chargement remote', true);
+  } finally {
+    setLoading(false);
+    renderPlanning(currentDayIndex);
+  }
+}
 
-            if (isToday) {
-                const currentH = now.getHours();
-                if (currentH > hStart) hStart = currentH;
-            }
+function saveLocal(){
+  try{ localStorage.setItem(LSKEY, JSON.stringify(localBooked)); }catch(e){}
+}
 
-            const slots = [];
-            for (let h = hStart; h < 22; h++) {
-                for (let m = 0; m < 60; m += intervalMinutes) {
-                    const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+/* =======================
+   BOOKING OVERLAP
+   ======================= */
+function isOverlapping(candidateStart, forUI = false) {
+  const candEnd = addMinutes(candidateStart, forUI ? 0 : CONFIG.SLOTDURATIONMIN);
+  const all = [...(remoteBooked||[]), ...(localBooked||[])];
+  for(const b of all){
+    const bs = new Date(b.start);
+    const be = addMinutes(bs, CONFIG.SLOTDURATIONMIN + CONFIG.BUFFER_MIN);
+    if(candidateStart < be && candEnd > bs) return true;
+  }
+  return false;
+}
 
-                    slots.push({
-                        type: "slot",
-                        date,
-                        time,
-                        booked: isBooked(date, time)
-                    });
-                }
-            }
-            return slots;
-        }
+function isAllowed(candidateStart){
+  const minAllowed = addMinutes(now(), CONFIG.MINADVANCEHOURS * 60);
+  if(candidateStart < minAllowed) return false;
+  if(isOverlapping(candidateStart)) return false;
+  return true;
+}
 
+/* =======================
+   RENDER PLANNING
+   ======================= */
+function renderPlanning(dayIndex){
+  currentDayIndex = dayIndex;
+  const container = document.getElementById('planning');
+  container.innerHTML = '<div class="loading" id="loadingSpinner" style="display:none"></div>';
+  const day = days[dayIndex];
+  const today = now();
+  let slotsRendered = 0;
 
-        /**************** RENDU INTERFACE ****************/
-        function renderDays() {
-            const days = getDays();
-            const nav = document.getElementById("daysNav");
-
-            nav.innerHTML = days.map((d, i) => `
-                <div class="day-tab ${i === 0 ? "active" : ""}" onclick="switchDay(${i})">
-                    <div class="day-name">${formatDay(d, i)}</div>
-                    <div class="day-date">${formatDate(d)}</div>
-                </div>
-            `).join("");
-        }
-
-        function renderPlanning(dayIndex) {
-            const days = getDays();
-            const date = days[dayIndex];
-            const slots = generateTimeSlots(date, dayIndex === 0);
-            const container = document.getElementById("planning");
-
-            let html = "";
-
-            let currentHour = -1;
-            for (const slot of slots) {
-                const h = slot.time.split(":")[0];
-                if (h != currentHour) {
-                    html += `<div class="hour-separator">${h}h00</div>`;
-                    currentHour = h;
-                }
-
-                html += `
-                    <div class="time-slot ${slot.booked ? "booked" : "available"}"
-                         id="${slot.time.replace(":", "")}"
-                         ${slot.booked ? "" : `onclick="selectSlot('${slot.time}', ${dayIndex})"`}>
-                        ${slot.time}
-                    </div>
-                `;
-            }
-
-            container.innerHTML = html;
-        }
-
-
-        /**************** INTERACTION ****************/
-        function switchDay(i) {
-            currentDay = i;
-            selectedSlot = null;
-
-            document.querySelectorAll(".day-tab").forEach((d, idx) => d.classList.toggle("active", idx === i));
-            document.getElementById("validation").classList.remove("show");
-
-            renderPlanning(i);
-        }
-
-        function selectSlot(time, dayIndex) {
-            if (selectedSlot) {
-                document.getElementById(selectedSlot.replace(":", "")).classList.remove("selected");
-            }
-
-            selectedSlot = time;
-            document.getElementById(time.replace(":", "")).classList.add("selected");
-
-            const days = getDays();
-            const d = days[dayIndex];
-
-            const [h, m] = time.split(":");
-            const end = new Date(d);
-            end.setHours(parseInt(h), parseInt(m) + intervalMinutes);
-            const endTime = `${String(end.getHours()).padStart(2,"0")}:${String(end.getMinutes()).padStart(2,"0")}`;
-
-            document.getElementById("valDate").textContent = `${formatDay(d, dayIndex)} • ${formatDate(d)}`;
-            document.getElementById("valTime").textContent = `${time} → ${endTime}`;
-
-            document.getElementById("validation").classList.add("show");
-        }
-
-
-        /**************** WHATSAPP ****************/
-        function confirmBooking() {
-            const date = document.getElementById("valDate").textContent;
-            const time = document.getElementById("valTime").textContent;
-
-            const msg = `⚡ ZAPS - Je confirme ma réservation pour ${date} de ${time}`;
-            window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
-        }
-
-        /**************** INIT ****************/
-        renderDays();
-        renderPlanning(0);
-    </script>
-
-</body>
-</html>
-T'en pense quoi
+  const dayKey = isoDateKey(day);
+  const dayBooked = [...remoteBooked, ...localBooked].filter(b => isoDateKey(new Date(b.start)) === dayKey).length;
+  if (CONFIG.MAXSLOTSPER_DAY && dayBooked >= CONFIG.MAXSLOTSPER_DAY) {
+    const warn = document.createElement('div');
+    warn.className = 'hour';
+    warn.textContent = `Jour complet (${dayBooked}/${CONFIG.MAXSLOTSPER_DAY})`;
+    warn.style.color = 'var(--error)';
+    container.appendChild
